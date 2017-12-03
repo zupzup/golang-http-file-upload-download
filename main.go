@@ -2,9 +2,8 @@ package main
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
-	"github.com/go-chi/chi"
-	"github.com/satori/go.uuid"
 	"io"
 	"io/ioutil"
 	"log"
@@ -17,12 +16,13 @@ const maxUploadSize = 2 * 1024 * 2014 // 2 mb
 const uploadPath = "./tmp"
 
 func main() {
-	r := chi.NewRouter()
-	r.Post("/upload", uploadFileHandler())
-	fileServer(r, "/files", http.Dir(uploadPath))
+	http.HandleFunc("/upload", uploadFileHandler())
+
+	fs := http.FileServer(http.Dir(uploadPath))
+	http.Handle("/files/", http.StripPrefix("/files", fs))
 
 	log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func uploadFileHandler() http.HandlerFunc {
@@ -57,7 +57,7 @@ func uploadFileHandler() http.HandlerFunc {
 			w.Write([]byte("INVALID_FILE_TYPE"))
 			return
 		}
-		fileName := uuid.NewV4().String()
+		fileName := randToken(12)
 		fileEnding := filepath.Ext(originalFilename)
 		newPath := fmt.Sprintf("%s/%s%s", uploadPath, fileName, fileEnding)
 		fmt.Printf("FileType: %s, File: %s\n", fileType, newPath)
@@ -78,22 +78,13 @@ func uploadFileHandler() http.HandlerFunc {
 	})
 }
 
-func fileServer(r chi.Router, path string, root http.FileSystem) {
-	fs := http.StripPrefix(path, http.FileServer(root))
-
-	if path != "/" && path[len(path)-1] != '/' {
-		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
-		path += "/"
-	}
-	path += "*"
-
-	r.Get(path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fs.ServeHTTP(w, r)
-		return
-	}))
-}
-
 func renderError(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(http.StatusBadRequest)
 	w.Write([]byte(message))
+}
+
+func randToken(len int) string {
+	b := make([]byte, len)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
