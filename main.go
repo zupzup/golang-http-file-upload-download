@@ -54,7 +54,7 @@ func uploadFileHandler() http.HandlerFunc {
 		if filetype != "image/jpeg" && filetype != "image/jpg" &&
 			filetype != "image/gif" && filetype != "image/png" &&
 			filetype != "application/pdf" {
-			w.Write([]byte("INVALID_FILE_TYPE"))
+			renderError(w, "INVALID_FILE_TYPE", http.StatusBadRequest)
 			return
 		}
 		fileName := randToken(12)
