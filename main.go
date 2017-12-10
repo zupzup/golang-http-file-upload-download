@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"crypto/rand"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,13 +35,12 @@ func uploadFileHandler() http.HandlerFunc {
 
 		// parse and validate file and post parameters
 		fileType := r.PostFormValue("type")
-		file, header, err := r.FormFile("uploadFile")
+		file, _, err := r.FormFile("uploadFile")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
-		originalFilename := header.Filename
 		fileBytes, err := ioutil.ReadAll(file)
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
@@ -50,7 +48,7 @@ func uploadFileHandler() http.HandlerFunc {
 		}
 
 		// check file type, detectcontenttype only needs the first 512 bytes
-		filetype := http.DetectContentType(fileBytes[:512])
+		filetype := http.DetectContentType(fileBytes)
 		if filetype != "image/jpeg" && filetype != "image/jpg" &&
 			filetype != "image/gif" && filetype != "image/png" &&
 			filetype != "application/pdf" {
@@ -58,20 +56,23 @@ func uploadFileHandler() http.HandlerFunc {
 			return
 		}
 		fileName := randToken(12)
-		fileEnding := filepath.Ext(originalFilename)
-		newPath := fmt.Sprintf("%s/%s%s", uploadPath, fileName, fileEnding)
+		fileEndings, err := mime.ExtensionsByType(fileType)
+		if err != nil {
+			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
+			return
+		}
+		newPath := filepath.Join(uploadPath, fileName+fileEndings[0])
 		fmt.Printf("FileType: %s, File: %s\n", fileType, newPath)
 
 		// write file
 		newFile, err := os.Create(newPath)
 		if err != nil {
-			renderError(w, "CANT_WRITE_FILE", http.StatusBadRequest)
+			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
 		defer newFile.Close()
-		f := bytes.NewReader(fileBytes)
-		if _, err := io.Copy(newFile, f); err != nil {
-			renderError(w, "CANT_WRITE_FILE", http.StatusBadRequest)
+		if _, err := newFile.Write(fileBytes); err != nil {
+			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
 		w.Write([]byte("SUCCESS"))
