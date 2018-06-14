@@ -49,9 +49,12 @@ func uploadFileHandler() http.HandlerFunc {
 
 		// check file type, detectcontenttype only needs the first 512 bytes
 		filetype := http.DetectContentType(fileBytes)
-		if filetype != "image/jpeg" && filetype != "image/jpg" &&
-			filetype != "image/gif" && filetype != "image/png" &&
-			filetype != "application/pdf" {
+		switch filetype {
+		case "image/jpeg", "image/jpg":
+		case "image/gif", "image/png":
+		case "application/pdf":
+			break
+		default:
 			renderError(w, "INVALID_FILE_TYPE", http.StatusBadRequest)
 			return
 		}
