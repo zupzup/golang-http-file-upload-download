@@ -73,8 +73,8 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
-		defer newFile.Close()
-		if _, err := newFile.Write(fileBytes); err != nil {
+		defer newFile.Close() // idempotent, okay to call twice
+		if _, err := newFile.Write(fileBytes); err != nil || newFile.Close() != nil {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
