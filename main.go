@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-const maxUploadSize = 2 * 1024 // 2 mb
+const maxUploadSize = 2 * 1024 * 1024 // 2 mb
 const uploadPath = "./tmp"
 
 func main() {
