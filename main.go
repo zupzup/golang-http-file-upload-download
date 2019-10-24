@@ -34,7 +34,6 @@ func uploadFileHandler() http.HandlerFunc {
 		}
 
 		// parse and validate file and post parameters
-		fileType := r.PostFormValue("type")
 		file, _, err := r.FormFile("uploadFile")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
@@ -48,8 +47,8 @@ func uploadFileHandler() http.HandlerFunc {
 		}
 
 		// check file type, detectcontenttype only needs the first 512 bytes
-		filetype := http.DetectContentType(fileBytes)
-		switch filetype {
+		detectedFileType := http.DetectContentType(fileBytes)
+		switch detectedFileType {
 		case "image/jpeg", "image/jpg":
 		case "image/gif", "image/png":
 		case "application/pdf":
@@ -59,13 +58,13 @@ func uploadFileHandler() http.HandlerFunc {
 			return
 		}
 		fileName := randToken(12)
-		fileEndings, err := mime.ExtensionsByType(fileType)
+		fileEndings, err := mime.ExtensionsByType(detectedFileType)
 		if err != nil {
 			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
 			return
 		}
 		newPath := filepath.Join(uploadPath, fileName+fileEndings[0])
-		fmt.Printf("FileType: %s, File: %s\n", fileType, newPath)
+		fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
 		// write file
 		newFile, err := os.Create(newPath)
