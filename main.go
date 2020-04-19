@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"html/template"
 )
 
 const maxUploadSize = 2 * 1024 * 1024 // 2 mb
@@ -26,6 +27,11 @@ func main() {
 
 func uploadFileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			t, _ := template.ParseFiles("upload.gtpl")
+			t.Execute(w, nil)
+			return
+		}
 		if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 			fmt.Printf("Could not parse multipart form: %v\n", err)
 			renderError(w, "CANT_PARSE_FORM", http.StatusInternalServerError)
