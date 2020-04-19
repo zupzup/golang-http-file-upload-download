@@ -33,7 +33,7 @@ func uploadFileHandler() http.HandlerFunc {
 		}
 
 		// parse and validate file and post parameters
-		file, fileHeader, err := r.FormFile("uploadfile")
+		file, fileHeader, err := r.FormFile("uploadFile")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
