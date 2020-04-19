@@ -26,20 +26,27 @@ func main() {
 
 func uploadFileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// validate file size
-		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 		if err := r.ParseMultipartForm(maxUploadSize); err != nil {
-			renderError(w, "FILE_TOO_BIG", http.StatusBadRequest)
+			fmt.Printf("Could not parse multipart form: %v\n", err)
+			renderError(w, "CANT_PARSE_FORM", http.StatusInternalServerError)
 			return
 		}
 
 		// parse and validate file and post parameters
-		file, _, err := r.FormFile("uploadFile")
+		file, fileHeader, err := r.FormFile("uploadfile")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
+		// Get and print out file size
+		fileSize := fileHeader.Size
+		fmt.Printf("File size (bytes): %v\n", fileSize)
+		// validate file size
+		if fileSize > maxUploadSize {
+			renderError(w, "FILE_TOO_BIG", http.StatusBadRequest)
+			return
+		}
 		fileBytes, err := ioutil.ReadAll(file)
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
