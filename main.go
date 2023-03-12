@@ -3,17 +3,17 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
-	"html/template"
 )
 
 const maxUploadSize = 2 * 1024 * 1024 // 2 mb
-const uploadPath = "./tmp"
+var uploadPath = os.TempDir()
 
 func main() {
 	http.HandleFunc("/upload", uploadFileHandler())
@@ -76,7 +76,9 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
 			return
 		}
-		newPath := filepath.Join(uploadPath, fileName+fileEndings[0])
+
+		newFileName := fileName + fileEndings[0]
+		newPath := filepath.Join(uploadPath, newFileName)
 		fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
 		// write file
@@ -90,12 +92,12 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
-		w.Write([]byte("SUCCESS"))
+		w.Write([]byte(fmt.Sprintf("SUCCESS - use /files/%v to access the file", newFileName)))
 	})
 }
 
 func renderError(w http.ResponseWriter, message string, statusCode int) {
-	w.WriteHeader(http.StatusBadRequest)
+	w.WriteHeader(statusCode)
 	w.Write([]byte(message))
 }
 
